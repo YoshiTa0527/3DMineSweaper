@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class CameraGun : MonoBehaviour
 {
-    [SerializeField] ParticleSystem m_particle = null;
     bool m_isFirstClick = true;
     private void Update()
     {
@@ -19,14 +18,14 @@ public class CameraGun : MonoBehaviour
                 {
                     if (hit.collider.tag == "Cover")
                     {
+                        Cover cover = hit.collider.gameObject.GetComponent<Cover>();
                         if (m_isFirstClick)
                         {
                             m_isFirstClick = false;
+                            
                             FindObjectOfType<Board>().MineAdd();
                         }
-                        hit.collider.gameObject.GetComponent<Cover>().m_IsHit = true;
-
-
+                        cover.m_IsHit = true;
                     }
                 }
                 else

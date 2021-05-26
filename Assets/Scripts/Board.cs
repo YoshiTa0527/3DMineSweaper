@@ -53,7 +53,8 @@ public class Board : MonoBehaviour
                 cell.indexOfArrayX = n;
                 cell.indexOfArrayY = k;
                 cell.m_CellState = 0;
-                Debug.Log(cell.GetHashCode());
+
+                Debug.Log(cell.gameObject.name);
             }
         }
     }
@@ -66,7 +67,7 @@ public class Board : MonoBehaviour
         if (m_mineCount >= m_indexX * m_indexY) return;
 
         int mineCount = 0;
-        while (true)
+        while (mineCount <= m_mineCount)
         {
             if (m_cellArray != null)
             {
@@ -75,19 +76,12 @@ public class Board : MonoBehaviour
                 /*ランダムに選ばれた配列の場所に既に地雷がある場合はもう一度ランダムに設定する*/
                 if (m_cellArray[randomX, randomY].m_CellState != CellState.Mine)
                 {
-
                     m_cellArray[randomX, randomY].m_CellState = CellState.Mine;
                     mineCount++;
-
                 }
-
                 m_cellArray[randomX, randomY].gameObject.name = "Mine" + (mineCount + 1);
             }
         }
-
-
-
-
         SetCellState();
         Debug.Log("配列に設定されたMineの数：" + mineCount);
         Debug.Log("ヒエラルキーに設定されたMineの数：" + m_cellParent.transform.GetComponentsInChildren<Cell>()
