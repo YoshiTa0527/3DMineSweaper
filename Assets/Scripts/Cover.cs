@@ -3,46 +3,43 @@ using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
 
-public class Cover : MonoBehaviour
+public class Cover : EventSubscriber
 {
-    [SerializeField] float m_pushPower = 5f;
+
     [SerializeField] float m_deleteTime = 1f;
-    [SerializeField] Cell m_cell = null;
+    [SerializeField] Cell m_cell = default;
+    public Cell GetCell() { return m_cell; }
     public bool m_IsHit { get; set; }
     Renderer m_rend;
-    Rigidbody m_rb;
+
     private void Awake()
     {
         m_IsHit = false;
         m_rend = GetComponent<Renderer>();
-        m_rb = GetComponent<Rigidbody>();
+
     }
     private void Update()
     {
         if (m_IsHit)
         {
-            m_cell.OpenCell();
+
         }
     }
 
+    public override void OnGameOver()
+    {
+        base.OnGameOver();
+    }
+    /// <summary>
+    /// カバー（自分自身）をランダムに吹き飛ばす
+    /// </summary>
     public void PushUpCover()
     {
-        Debug.Log("openCoverCalled");
+        if (m_cell.m_isAddedFlag) return;
         m_IsHit = false;
-        FreeConstrains();
-        this.gameObject.tag = "Untagged";
-
-        float randomDirX = Random.Range(-1f, 1);
-        float randomDirZ = Random.Range(-1f, 1);
-
-        //transform.Rotate(,)で回転する
-        for (int i = 0; i < 360; i++)
-        {
-            this.transform.Rotate(i * randomDirX, i * randomDirX, i * randomDirX);
-        }
-
-        m_rb.AddForce(m_pushPower * new Vector3(randomDirX, 1.5f, randomDirZ), ForceMode.Impulse);
+        RandomPush();
         StartCoroutine(DestroyCover());
+        m_cell.OpenCell();
     }
 
     Sequence m_seq;
@@ -55,13 +52,8 @@ public class Cover : MonoBehaviour
         m_seq.Append(DOTween.ToAlpha(() => m_rend.material.color, c => m_rend.material.color = c, 0f, m_deleteTime)).OnComplete(() => Destroy(this.gameObject));
         yield return new WaitForSeconds(1);
         m_seq.Play();
+        Destroy(this.gameObject, 1.1f);
     }
-
-    void FreeConstrains()
-    {
-        m_rb.constraints = RigidbodyConstraints.None;
-    }
-
 
 
 }

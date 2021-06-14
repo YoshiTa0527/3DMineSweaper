@@ -3,25 +3,28 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
+using System;
 
-public class Cell : MonoBehaviour
+public class Cell : EventSubscriber
 {
-    [SerializeField] GameObject m_lampParent = null;
-    List<Light> m_lights = new List<Light>();
+    [SerializeField] GameObject m_numberParent = default;
+    GameObject[] m_numbers;
     [SerializeField] GameObject m_mine = null;
     [SerializeField] float m_mineOffset = 0.5f;
     [SerializeField] Cover m_cover = null;
     [SerializeField] CellState m_cellState = CellState.None;
     [SerializeField] GameObject m_mineFlag = null;
     [SerializeField] ParticleSystem m_particle = null;
-    bool m_isAddedFlag = false;
+    public bool m_isAddedFlag { get; set; }
+    Board m_board;
     public bool m_IsOpened { get; set; }
     public CellState m_CellState
     {
         get => m_cellState;
         set
         {
-            m_cellState = value; OnCellStateChanged();
+            m_cellState = value;
+            OnCellStateChanged();
         }
     }
 
@@ -33,32 +36,66 @@ public class Cell : MonoBehaviour
         if (m_mineFlag) m_mineFlag.SetActive(false);
         m_isAddedFlag = false;
         m_IsOpened = false;
-        m_lights = GetComponentsInChildren<Light>().ToList();
-        m_lights.ForEach(light => light.enabled = false);
+        if (m_numberParent)
+        {
+            GetAllChildObject();
+            m_numbers.ToList().ForEach(n => n.SetActive(false));
+        }
+        m_board = FindObjectOfType<Board>();
+    }
+
+    private void GetAllChildObject()
+    {
+        m_numbers = new GameObject[m_numberParent.transform.childCount];
+
+        for (int i = 0; i < m_numberParent.transform.childCount; i++)
+        {
+            m_numbers[i] = m_numberParent.transform.GetChild(i).gameObject;
+        }
     }
 
     private void OnValidate()
     {
-        OnCellStateChanged();
+        //OnCellStateChanged();
+    }
+
+    public override void OnGameOver()
+    {
+        base.OnGameOver();
     }
 
     public void OpenCell()
     {
-        if (m_isAddedFlag && m_IsOpened) return;
-        m_IsOpened = true;
-        m_cover.PushUpCover();
+        if (m_IsOpened) return;
+        if (!m_isAddedFlag)
+        {
+            m_IsOpened = true;
+            m_cover.PushUpCover();
+            SoundManager sm = FindObjectOfType<SoundManager>();
+            if (m_cellState == CellState.None)
+            {
+                //FindObjectOfType<Board>().OpenAroundCells(indexOfArrayX, indexOfArrayY);
+                FindObjectOfType<Board>().OpenAroundCell(indexOfArrayX, indexOfArrayY);
+                sm.PlayCoverHit();
+            }
+            else if (m_cellState == CellState.Mine)
+            {
+                sm.PlayBakuhatsuCoverHit();
+                MineApear();
+                EventManager.GameOver();
+                Debug.Log("GAME OVER");
+            }
+            else { sm.PlayCoverHit(); }
+            if (m_particle) Instantiate(m_particle.gameObject, this.gameObject.transform.position + new Vector3(0, m_mineOffset, 0), Quaternion.identity);
+        }
+    }
 
-        if (m_cellState == CellState.None) FindObjectOfType<Board>().OpenAroundCells(indexOfArrayX, indexOfArrayY);
+    public void MineApear()
+    {
+        FindObjectOfType<BGMManager>()?.StopBgm();
+        FindObjectOfType<SoundManager>()?.PlayDoukasen();
         if (m_cellState == CellState.Mine)
-        {
             Instantiate(m_mine, this.transform.position + new Vector3(0, m_mineOffset, 0), Quaternion.Euler(0, 0, 90));
-            Board.m_IsGameOver = true;
-            Debug.Log("GAME OVER");
-        }
-        if (m_particle && !Board.m_IsGameOver)
-        {
-            Instantiate(m_particle.gameObject, this.gameObject.transform.position + new Vector3(0, m_mineOffset, 0), Quaternion.identity);
-        }
     }
 
     public void SetOrRemoveFlag()
@@ -68,71 +105,57 @@ public class Cell : MonoBehaviour
         {
             Debug.Log("setFlag");
             m_mineFlag.gameObject.SetActive(true);
+            m_board.m_FlagCount++;
             m_isAddedFlag = true;
         }
         else
         {
             Debug.Log("removeFlag");
             m_mineFlag.gameObject.SetActive(false);
+            m_board.m_FlagCount--;
             m_isAddedFlag = false;
         }
+        if (m_cellState == CellState.Mine && m_isAddedFlag) m_board.m_colectCount++;
+        else if (m_cellState == CellState.Mine && !m_isAddedFlag) m_board.m_colectCount--;
+        Debug.Log("colectCOunt" + m_board.m_colectCount);
+        m_board.RefleshTexts();
     }
 
     private void OnCellStateChanged()
     {
-        if (m_lights == null) return;
+        if (m_numbers == null) return;
+        Debug.Log("cellstate" + m_CellState.ToString());
+        this.gameObject.name = m_CellState.ToString();
         switch (m_cellState)
         {
             case CellState.None:
-
+                //m_numbers[0].SetActive(true);
                 break;
             case CellState.One:
-                m_lights.FirstOrDefault().enabled = true;
+                m_numbers[1].SetActive(true);
                 break;
             case CellState.Two:
-                for (int i = 0; i < 2; i++)
-                {
-                    m_lights[i].enabled = true;
-                }
+                m_numbers[2].SetActive(true);
                 break;
             case CellState.Three:
-                for (int i = 0; i < 3; i++)
-                {
-                    m_lights[i].enabled = true;
-                }
+                m_numbers[3].SetActive(true);
                 break;
             case CellState.Four:
-                for (int i = 0; i < 4; i++)
-                {
-                    m_lights[i].enabled = true;
-                }
+                m_numbers[4].SetActive(true);
                 break;
             case CellState.Five:
-                for (int i = 0; i < 5; i++)
-                {
-                    m_lights[i].enabled = true;
-                }
+                m_numbers[5].SetActive(true);
                 break;
             case CellState.Six:
-                for (int i = 0; i < 6; i++)
-                {
-                    m_lights[i].enabled = true;
-                }
+                m_numbers[6].SetActive(true);
                 break;
             case CellState.Seven:
-                for (int i = 0; i < 7; i++)
-                {
-                    m_lights[i].enabled = true;
-                }
+                m_numbers[7].SetActive(true);
                 break;
             case CellState.Eight:
-                for (int i = 0; i < 8; i++)
-                {
-                    m_lights[i].enabled = true;
-                }
+                m_numbers[8].SetActive(true);
                 break;
             case CellState.Mine:
-
                 break;
             default:
                 break;

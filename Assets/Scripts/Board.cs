@@ -5,25 +5,40 @@ using UnityEngine.UI;
 using System.Linq;
 using System;
 
-public class Board : MonoBehaviour
+public class Board : EventSubscriber
 {
+    public static Board m_board;
+    [SerializeField] bool m_isDebugMode = false;
+    public bool GetIsDebugMode() { return m_isDebugMode; }
     [SerializeField] int m_indexX = 5;
     [SerializeField] int m_indexY = 5;
     [SerializeField] Cell m_cell = null;
     [SerializeField] GameObject m_cellParent = null;
-    public GameObject m_targetCell;
-
+    public int m_firstClickPointX { get; set; }
+    public int m_firstClickPointY { get; set; }
 
     public static bool m_IsGameOver { get; set; }
     Cell[,] m_cellArray;
+    [SerializeField] Text m_mineText = default;
+    [SerializeField] Text m_flagText = default;
+
+    public int m_FlagCount { get; set; }
+    public int m_colectCount { get; set; }
 
     /// <summary>地雷の個数</summary>
     [SerializeField] int m_mineCount = 5;
+    GameObject m_canvas;
+    public override void OnGameOver()
+    {
+        m_IsGameOver = true;
+    }
     private void Start()
     {
         m_IsGameOver = false;
+        m_FlagCount = 0;
+        m_canvas = GameObject.FindGameObjectWithTag("Canvas");
         MakeBoard();
-
+        RefleshTexts();
     }
     /// <summary>
     /// 
@@ -36,6 +51,23 @@ public class Board : MonoBehaviour
             {
                 ChangeCellState(CheckArround(n, k), m_cellArray[n, k]);
             }
+        }
+    }
+
+    public void RefleshTexts()
+    {
+        Check();
+        m_mineText.text = m_mineCount.ToString();
+        m_flagText.text = m_FlagCount.ToString();
+    }
+    [SerializeField] GameObject m_clearText = default;
+    void Check()
+    {
+        if (m_colectCount >= m_mineCount)
+        {
+            m_IsGameOver = true;
+            if (m_clearText) Instantiate(m_clearText, m_canvas.transform);
+            FindObjectOfType<SoundManager>().PlayEnding();
         }
     }
 
@@ -67,12 +99,13 @@ public class Board : MonoBehaviour
         if (m_mineCount >= m_indexX * m_indexY) return;
 
         int mineCount = 0;
-        while (mineCount <= m_mineCount)
+        while (mineCount < m_mineCount)
         {
             if (m_cellArray != null)
             {
                 int randomX = UnityEngine.Random.Range(0, m_cellArray.GetLength(0));
                 int randomY = UnityEngine.Random.Range(0, m_cellArray.GetLength(1));
+                if (randomX == m_firstClickPointX && randomY == m_firstClickPointY) continue;
                 /*ランダムに選ばれた配列の場所に既に地雷がある場合はもう一度ランダムに設定する*/
                 if (m_cellArray[randomX, randomY].m_CellState != CellState.Mine)
                 {
@@ -149,8 +182,22 @@ public class Board : MonoBehaviour
     /// <summary>
     /// 隣接するマスに地雷が置かれていないときはそれらが自動で開けられる
     /// </summary>
-    public void OpenAroundCells(int x, int y)
+    //public void OpenAroundCells(int x, int y)
+    //{
+    //    foreach (var item in CheckArround(x, y))
+    //    {
+    //        if (!item.m_IsOpened) item.OpenCell();
+    //    }
+    //}
+
+    public void OpenAroundCell(int x, int y)
     {
+        StartCoroutine(OpenAroundCorutine(x, y));
+    }
+
+    IEnumerator OpenAroundCorutine(int x, int y)
+    {
+        yield return new WaitForSeconds(0.1f);
         foreach (var item in CheckArround(x, y))
         {
             if (!item.m_IsOpened) item.OpenCell();
