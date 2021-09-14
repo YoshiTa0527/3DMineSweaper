@@ -197,7 +197,7 @@ public class Board : EventSubscriber
 
     IEnumerator OpenAroundCorutine(int x, int y)
     {
-        yield return new WaitForSeconds(0.1f);
+        yield return new WaitForSeconds(0.2f);
         foreach (var item in CheckArround(x, y))
         {
             if (!item.m_IsOpened) item.OpenCell();

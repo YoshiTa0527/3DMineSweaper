@@ -49,7 +49,7 @@ public class Cover : EventSubscriber
     /// <returns></returns>
     IEnumerator DestroyCover()
     {
-        m_seq.Append(DOTween.ToAlpha(() => m_rend.material.color, c => m_rend.material.color = c, 0f, m_deleteTime)).OnComplete(() => Destroy(this.gameObject));
+        m_seq.Append(DOTween.ToAlpha(() => m_rend.material.color, c => m_rend.material.color = c, 0f, m_deleteTime));
         yield return new WaitForSeconds(1);
         m_seq.Play();
         Destroy(this.gameObject, 1.1f);
